@@ -1,0 +1,3 @@
+SOFTINCLUDE /esat/micas-data/software/Cadence/incisiv_15.20.058/tools/inca/files/cds.lib
+include ../../../../../cds.lib
+define worklib ../worklib
