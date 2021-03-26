@@ -21,6 +21,7 @@ module control_unit(
    parameter integer JUMP       = 6'h2;
    parameter integer LOAD_WORD  = 6'h23;
    parameter integer STORE_WORD = 6'h2B;
+   parameter integer MULT	= 6'h0;
 
    parameter [1:0] ADD_OPCODE     = 2'd0;
    parameter [1:0] SUB_OPCODE     = 2'd1;
@@ -47,6 +48,31 @@ module control_unit(
     
 	// Declare the control signals for each one of the instructions
 	
+	 ADDI:begin
+            reg_dst   = 1'b0;
+            alu_src   = 1'b1;
+            mem_2_reg = 1'b0;
+            reg_write = 1'b1;
+            mem_read  = 1'b0;
+            mem_write = 1'b0;
+            branch    = 1'b0;
+            alu_op    = ADD_OPCODE;
+            jump      = 1'b0;
+	 end
+	
+  	 MULT:begin
+	    reg_dst   = 1'b0;//TODO
+            alu_src   = 1'b1;//TODO
+            mem_2_reg = 1'b0;//TODO
+            reg_write = 1'b1;//TODO
+            mem_read  = 1'b0;//TODO
+            mem_write = 1'b0;//TODO
+            branch    = 1'b0;//TODO
+            alu_op    = R_TYPE_OPCODE;
+            jump      = 1'b0;//TODO
+	 
+	 end
+
          default:begin
             reg_dst   = 1'b0; 
             alu_src   = 1'b0;
@@ -58,6 +84,7 @@ module control_unit(
             alu_op    = R_TYPE_OPCODE;
             jump      = 1'b0;
          end
+
       endcase
    end
 
