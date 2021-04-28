@@ -50,9 +50,12 @@ wire [      31:0] regfile_wdata, dram_data,alu_out,
 
 wire signed [31:0] immediate_extended;
 
-assign immediate_extended = $signed(instruction[15:0]);
+// extends IF/ID instruction
+assign immediate_extended = $signed(instruction_IF_ID[15:0]);
 
-
+/////////////////////
+// PROGRAM COUNTER //
+/////////////////////
 pc #(
    .DATA_W(32)
 ) program_counter (
@@ -68,7 +71,48 @@ pc #(
    .updated_pc(updated_pc)
 );
 
+// IF/ID upadated PC
+reg_arstn_en #(.DATA_W(32)) updated_pc_pipe_IF_ID(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (updated_pc),
+      .en    (enable    ),
+      .dout  (updated_pc_IF_ID)
+);
 
+// ID/EX upadated PC
+reg_arstn_en #(.DATA_W(32)) updated_pc_pipe_ID_EX(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (updated_pc_IF_ID),
+      .en    (enable    ),
+      .dout  (updated_pc_ID_EX)
+);
+
+
+/////////////////////
+// INSTRUCTION     //
+/////////////////////
+
+// IF/ID instruction
+reg_arstn_en #(.DATA_W(32)) instruction_pipe_IF_ID(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (instruction),
+      .en    (enable    ),
+      .dout  (instruction_IF_ID)
+);
+
+// ID/EX instruction
+reg_arstn_en #(.DATA_W(32)) instruction_pipe_ID_EX(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (immediate_extended),
+      .en    (enable    ),
+      .dout  (instruction_ID_EX)
+);
+
+// instruction memory
 sram #(
    .ADDR_W(9 ),
    .DATA_W(32)
@@ -86,6 +130,13 @@ sram #(
    .rdata_ext(rdata_ext     )
 );
 
+
+
+/////////////////////
+// CONTROL         //
+/////////////////////
+//TODO
+
 control_unit control_unit(
    .opcode   (instruction[31:26]),
    .reg_dst  (reg_dst           ),
@@ -100,11 +151,15 @@ control_unit control_unit(
 );
 
 
+/////////////////////
+// REGISTERS       //
+/////////////////////
+
 mux_2 #(
    .DATA_W(5)
 ) regfile_dest_mux (
-   .input_a (instruction[15:11]),
-   .input_b (instruction[20:16]),
+   .input_a (instruction_IF_ID[15:11]),
+   .input_b (instruction_IF_ID[20:16]),
    .select_a(reg_dst          ),
    .mux_out (regfile_waddr     )
 );
@@ -115,52 +170,101 @@ register_file #(
    .clk      (clk               ),
    .arst_n   (arst_n            ),
    .reg_write(reg_write         ),
-   .raddr_1  (instruction[25:21]),
-   .raddr_2  (instruction[20:16]),
+   .raddr_1  (instruction_IF_ID[25:21]),
+   .raddr_2  (instruction_IF_ID[20:16]),
    .waddr    (regfile_waddr     ),
    .wdata    (regfile_wdata     ),
    .rdata_1  (regfile_data_1    ),
    .rdata_2  (regfile_data_2    )
 );
 
+// ID/EX register read data
+reg_arstn_en #(.DATA_W(16)) register_data1_pipe_ID_EX(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (regfile_data_1),
+      .en    (enable    ),
+      .dout  (regfile_data_1_ID_EX)
+);
+
+reg_arstn_en #(.DATA_W(16)) register_data2_pipe_ID_EX(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (regfile_data_2),
+      .en    (enable    ),
+      .dout  (regfile_data_2_ID_EX)
+);
+
+reg_arstn_en #(.DATA_W(16)) register_data2_pipe_EX_MEM(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (regfile_data_2_ID_EX),
+      .en    (enable    ),
+      .dout  (regfile_data_2_EX_MEM)
+);
+
+
+/////////////////////
+// ALU             //
+/////////////////////
 
 alu_control alu_ctrl(
-   .function_field (instruction[5:0]),
+   .function_field (instruction_ID_EX[5:0]),
    .alu_op         (alu_op          ),
    .alu_control    (alu_control     )
 );
 
+// EX instruction (ALU) MUX
 mux_2 #(
    .DATA_W(32)
 ) alu_operand_mux (
-   .input_a (immediate_extended),
-   .input_b (regfile_data_2    ),
+   .input_a (instruction_ID_EX),
+   .input_b (regfile_data_2_ID_EX    ),
    .select_a(alu_src           ),
    .mux_out (alu_operand_2     )
 );
 
-
 alu#(
    .DATA_W(32)
 ) alu(
-   .alu_in_0 (regfile_data_1),
+   .alu_in_0 (regfile_data_1_ID_EX),
    .alu_in_1 (alu_operand_2 ),
    .alu_ctrl (alu_control   ),
    .alu_out  (alu_out       ),
-   .shft_amnt(instruction[10:6]),
+   .shft_amnt(instruction_ID_EX[10:6]),
    .zero_flag(zero_flag     ),
    .overflow (              )
 );
+
+reg_arstn_en #(.DATA_W(32)) alu_result_EX_MEM(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (alu_out),
+      .en    (enable    ),
+      .dout  (alu_result_EX_MEM)
+);
+
+reg_arstn_en #(.DATA_W(32)) alu_result_MEM_WB(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (alu_result_EX_MEM),
+      .en    (enable    ),
+      .dout  (alu_result_MEM_WB)
+);
+
+/////////////////////
+// DATA MEMORY     //
+/////////////////////
 
 sram #(
    .ADDR_W(10),
    .DATA_W(32)
 ) data_memory(
    .clk      (clk           ),
-   .addr     (alu_out       ),
+   .addr     (alu_result_EX_MEM       ),
    .wen      (mem_write     ),
    .ren      (mem_read      ),
-   .wdata    (regfile_data_2),
+   .wdata    (regfile_data_2_EX_MEM),
    .rdata    (dram_data     ),   
    .addr_ext (addr_ext_2    ),
    .wen_ext  (wen_ext_2     ),
@@ -169,18 +273,34 @@ sram #(
    .rdata_ext(rdata_ext_2   )
 );
 
+// MEM WB dram data
+reg_arstn_en #(.DATA_W(32)) dram_data_MEM_WB(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (dram_data),
+      .en    (enable    ),
+      .dout  (dram_data_MEM_WB)
+);
 
+
+/////////////////////
+// WRITE BACK MUX  //
+/////////////////////
 
 mux_2 #(
    .DATA_W(32)
 ) regfile_data_mux (
-   .input_a  (dram_data    ),
-   .input_b  (alu_out      ),
+   .input_a  (dram_data_MEM_WB    ),
+   .input_b  (alu_result_MEM_WB      ),
    .select_a (mem_2_reg     ),
    .mux_out  (regfile_wdata)
 );
 
 
+/////////////////////
+// BRANCH          //
+/////////////////////
+//TODO
 
 branch_unit#(
    .DATA_W(32)
