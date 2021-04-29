@@ -1,0 +1,36 @@
+
+// module: Forwarding
+// Function: Generates the forwarding signals for each one of the datapath resources
+
+module forwarding_unit(
+      input  wire [4:0] IF/IDregisterRs,
+      input  wire [4:0] IF/IDregisterRt, 
+      input  wire [4:0] EX/MEMregisterRd,
+      input  wire [4:0] MEM/WBregisterRd,
+      input  wire       EX/MEMregWrite,
+      input  wire       MEM/WBregWrite,
+      output reg  [1:0] forwardA,
+      output reg  [1:0] forwardB
+   );
+   
+   always@(*) begin
+   
+      if(EX/MEMregWrite & EX/MEMregisterRd != 5'd0 & EX/MEMregisterRd == ID/EXregisterRs) begin
+          forwardA = 2'b10;
+      end
+      
+      if(EX/MEMregWrite & EX/MEMregisterRd != 5'd0 & EX/MEMregisterRd == ID/EXregisterRt) begin
+          forwardB = 2'b10;
+      end
+      
+      if(MEM/WBregWrite & MEM/WBregisterRd != 5'd0 & !(EX/MEMregWrite & (EX/MEMregisterRd != 5'd0) & (EX/MEMregisterRd != ID/EXregisterRs)) & MEM/WBregisterRd = ID/EXregisterRs) begin
+          forwardA = 2'b01;
+      end
+      
+      if(MEM/WBregWrite & MEM/WBregisterRd != 5'd0 & !(EX/MEMregWrite & (EX/MEMregisterRd != 5'd0) & (EX/MEMregisterRd != ID/EXregisterRt)) & MEM/WBregisterRd = ID/EXregisterRt) begin
+          forwardB = 2'b01;
+      end
+      
+  end
+endmodule
+ 
