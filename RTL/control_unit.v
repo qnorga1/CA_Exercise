@@ -21,7 +21,6 @@ module control_unit(
    parameter integer JUMP       = 6'h2;
    parameter integer LOAD_WORD  = 6'h23;
    parameter integer STORE_WORD = 6'h2B;
-   parameter integer MULT = 6'h18;
 
    parameter [1:0] ADD_OPCODE     = 2'd0;
    parameter [1:0] SUB_OPCODE     = 2'd1;
@@ -35,18 +34,6 @@ module control_unit(
 
       case(opcode)
          ALU_R:begin
-            reg_dst   = 1'b1;
-            alu_src   = 1'b0;
-            mem_2_reg = 1'b0;
-            reg_write = 1'b1;
-            mem_read  = 1'b0;
-            mem_write = 1'b0;
-            branch    = 1'b0;
-            alu_op    = R_TYPE_OPCODE;
-            jump      = 1'b0;
-         end
-
-	MULT:begin
             reg_dst   = 1'b1;
             alu_src   = 1'b0;
             mem_2_reg = 1'b0;
