@@ -103,14 +103,23 @@ reg_arstn_en #(.DATA_W(32)) instruction_pipe_IF_ID(
       .dout  (instruction_IF_ID)
 );
 
-// ID/EX instruction
-reg_arstn_en #(.DATA_W(32)) instruction_pipe_ID_EX(
+// ID/EX instruction extended
+	reg_arstn_en #(.DATA_W(32)) instruction_extended_pipe_ID_EX(
       .clk   (clk       ),
       .arst_n(arst_n    ),
       .din   (immediate_extended),
       .en    (enable    ),
-      .dout  (instruction_ID_EX)
+	.dout  (instruction_ID_EX_extended)
 );
+
+// ID/EX instruction
+reg_arstn_en #(.DATA_W(32)) instruction_pipe_ID_EX(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+	.din   (instruction_IF_ID),
+      .en    (enable    ),
+	.dout  (instruction_ID_EX)
+);	
 
 // instruction memory
 sram #(
@@ -149,7 +158,49 @@ control_unit control_unit(
    .reg_write(reg_write         ),
    .jump     (jump              )
 );
+	
+reg_arstn_en #(.DATA_W(16)) register_regWrite_pipe_ID_EX(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+	.din   (reg_write),
+      .en    (enable    ),
+	.dout  (reg_write_ID_EX)
+);	
 
+	reg_arstn_en #(.DATA_W(16)) register_regWrite_pipe_EX_MEM(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+		.din   (reg_write_ID_EX),
+      .en    (enable    ),
+		.dout  (reg_write_EX_MEM)
+);
+	
+	reg_arstn_en #(.DATA_W(16)) register_regWrite_pipe_MEM_WB(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+		.din   (reg_write_EX_MEM),
+      .en    (enable    ),
+		.dout  (reg_write_MEM_WB)
+);
+	
+///////////////////////////////
+// FORWARDING UNIT 	//////
+//////////////////////////////
+reg [1:0] forwardA;
+reg [1:0] forwardB;
+	
+forwarding_unit forwarding_unit(
+	.IF_IDregisterRs(instruction_ID_EX[25:21],
+	.IF_IDregisterRt(instruction_ID_EX[20:16]),
+	.EX_MEMregisterRd(regfile_waddr_EX_MEM),
+	.MEM_WBregisterRd(regfile_waddr_MEM_WB),
+	.EX_MEMregWrite(reg_write_EX_MEM),
+	.MEM_WBregWrite(reg_write_MEM_WB),
+	.forwardA(forwardA),
+	.forwardB(forwardB)
+);
+			 
+			 
 
 /////////////////////
 // REGISTERS       //
@@ -158,8 +209,8 @@ control_unit control_unit(
 mux_2 #(
    .DATA_W(5)
 ) regfile_dest_mux (
-   .input_a (instruction_IF_ID[15:11]),
-   .input_b (instruction_IF_ID[20:16]),
+	.input_a (instruction_ID_EX[15:11]),
+	.input_b (instruction_ID_EX[20:16]),
    .select_a(reg_dst          ),
    .mux_out (regfile_waddr     )
 );
@@ -202,6 +253,26 @@ reg_arstn_en #(.DATA_W(16)) register_data2_pipe_EX_MEM(
       .en    (enable    ),
       .dout  (regfile_data_2_EX_MEM)
 );
+		
+reg_arstn_en #(.DATA_W(16)) register_waddr_pipe_EX_MEM(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (regfile_waddr),
+      .en    (enable    ),
+      .dout  (regfile_waddr_EX_MEM)
+);
+			 
+reg_arstn_en #(.DATA_W(16)) register_waddr_pipe_MEM_WB(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+	.din   (regfile_waddr_EX_MEM),
+      .en    (enable    ),
+	.dout  (regfile_waddr_MEM_WB)
+);
+				 
+				 
+				 
+				 
 
 
 /////////////////////
@@ -209,7 +280,7 @@ reg_arstn_en #(.DATA_W(16)) register_data2_pipe_EX_MEM(
 /////////////////////
 
 alu_control alu_ctrl(
-   .function_field (instruction_ID_EX[5:0]),
+	.function_field (instruction_ID_EX_extended[5:0]),
    .alu_op         (alu_op          ),
    .alu_control    (alu_control     )
 );
@@ -218,7 +289,7 @@ alu_control alu_ctrl(
 mux_2 #(
    .DATA_W(32)
 ) alu_operand_mux (
-   .input_a (instruction_ID_EX),
+	.input_a (instruction_ID_EX_extended),
    .input_b (regfile_data_2_ID_EX    ),
    .select_a(alu_src           ),
    .mux_out (alu_operand_2     )
@@ -231,7 +302,7 @@ alu#(
    .alu_in_1 (alu_operand_2 ),
    .alu_ctrl (alu_control   ),
    .alu_out  (alu_out       ),
-   .shft_amnt(instruction_ID_EX[10:6]),
+	.shft_amnt(instruction_ID_EX_extended[10:6]),
    .zero_flag(zero_flag     ),
    .overflow (              )
 );
