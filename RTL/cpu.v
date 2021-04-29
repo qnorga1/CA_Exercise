@@ -284,13 +284,47 @@ alu_control alu_ctrl(
    .alu_op         (alu_op          ),
    .alu_control    (alu_control     )
 );
-
-// EX instruction (ALU) MUX
+	
+// 2 MUX's to select 1st ALU operand
 mux_2 #(
    .DATA_W(32)
 ) alu_operand_mux (
-	.input_a (instruction_ID_EX_extended),
-   .input_b (regfile_data_2_ID_EX    ),
+	.input_a (regfile_data_1_ID_EX),
+	.input_b (regfile_wdata    ),
+	.select_a(forwardA[0]           ),
+	.mux_out (mux1_out     )
+);
+mux_2 #(
+   .DATA_W(32)
+) alu_operand_mux (
+	.input_a (mux1_out),
+	.input_b (alu_result_EX_MEM    ),
+	.select_a(forwardA[1]           ),
+	.mux_out (alu_operand_1     )
+);
+
+// 3 MUX's to choose 2nd alu operand	
+mux_2 #(
+   .DATA_W(32)
+) alu_operand_mux (
+	.input_a (regfile_data_2_ID_EX),
+	.input_b (regfile_wdata    ),
+	.select_a(forwardB[0]           ),
+	.mux_out (mux2_out     )
+);
+mux_2 #(
+   .DATA_W(32)
+) alu_operand_mux (
+	.input_a (mux2_out),
+	.input_b (alu_result_EX_MEM    ),
+	.select_a(forwardA[1]           ),
+	.mux_out (alu_operand_1     )
+);	
+mux_2 #(
+   .DATA_W(32)
+) alu_operand_mux (
+	.input_a (mux_3_out),
+	.input_b (instruction_ID_EX_extended),
    .select_a(alu_src           ),
    .mux_out (alu_operand_2     )
 );
@@ -298,7 +332,7 @@ mux_2 #(
 alu#(
    .DATA_W(32)
 ) alu(
-   .alu_in_0 (regfile_data_1_ID_EX),
+	.alu_in_0 (alu_operand_1),
    .alu_in_1 (alu_operand_2 ),
    .alu_ctrl (alu_control   ),
    .alu_out  (alu_out       ),
