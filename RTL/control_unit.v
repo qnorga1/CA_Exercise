@@ -21,7 +21,8 @@ module control_unit(
    parameter integer JUMP       = 6'h2;
    parameter integer LOAD_WORD  = 6'h23;
    parameter integer STORE_WORD = 6'h2B;
-   //parameter integer MULT = 6'h18;
+ //parameter integer MULT = 6'h18;
+
 
    parameter [1:0] ADD_OPCODE     = 2'd0;
    parameter [1:0] SUB_OPCODE     = 2'd1;
