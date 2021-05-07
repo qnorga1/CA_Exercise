@@ -43,7 +43,7 @@ wire [       1:0] alu_op, alu_op_ID_EX;
 wire [       3:0] alu_control;
 wire              reg_dst,branch,mem_read,mem_2_reg,
                   mem_write,alu_src, reg_write, jump;
-wire [       4:0] regfile_waddr, instruction1620_ID_EX, instruction1115_ID_EX;
+wire [       4:0] regfile_waddr, instruction1620_ID_EX, instruction1115_ID_EX,regfile_waddr_EX_MEM,regfile_waddr_MEM_WB;
 wire [      31:0] regfile_wdata, dram_data,alu_out,
                   regfile_data_1,regfile_data_2,
                   alu_operand_2;
@@ -332,6 +332,22 @@ mux_2 #(
    .mux_out (regfile_waddr     )
 );
 
+reg_arstn_en #(.DATA_W(5)) register_destmux_pipe_EX_MEM(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (regfile_waddr),
+      .en    (enable    ),
+      .dout  (regfile_waddr_EX_MEM)
+);
+
+reg_arstn_en #(.DATA_W(5)) register_destmux_pipe_MEM_WB(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (regfile_waddr_EX_MEM),
+      .en    (enable    ),
+      .dout  (regfile_waddr_MEM_WB)
+);
+
 register_file #(
    .DATA_W(32)
 ) register_file(
@@ -340,7 +356,7 @@ register_file #(
    .reg_write(reg_write_MEM_WB         ),
    .raddr_1  (instruction_IF_ID[25:21]),
    .raddr_2  (instruction_IF_ID[20:16]),
-   .waddr    (regfile_waddr     ),
+   .waddr    (regfile_waddr_MEM_WB     ),
    .wdata    (regfile_wdata     ),
    .rdata_1  (regfile_data_1    ),
    .rdata_2  (regfile_data_2    )
