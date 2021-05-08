@@ -159,15 +159,15 @@ control_unit control_unit(
    .jump     (jump              )
 );
 	
-reg_arstn_en #(.DATA_W(16)) register_regWrite_pipe_ID_EX(
+	reg_arstn_en #(.DATA_W(1)) register_regWrite_pipe_ID_EX(
       .clk   (clk       ),
       .arst_n(arst_n    ),
-	.din   (reg_write),
+	.din   (updated_reg_write),
       .en    (enable    ),
 	.dout  (reg_write_ID_EX)
 );	
 
-	reg_arstn_en #(.DATA_W(16)) register_regWrite_pipe_EX_MEM(
+	reg_arstn_en #(.DATA_W(1)) register_regWrite_pipe_EX_MEM(
       .clk   (clk       ),
       .arst_n(arst_n    ),
 		.din   (reg_write_ID_EX),
@@ -175,12 +175,35 @@ reg_arstn_en #(.DATA_W(16)) register_regWrite_pipe_ID_EX(
 		.dout  (reg_write_EX_MEM)
 );
 	
-	reg_arstn_en #(.DATA_W(16)) register_regWrite_pipe_MEM_WB(
+	reg_arstn_en #(.DATA_W(1)) register_regWrite_pipe_MEM_WB(
       .clk   (clk       ),
       .arst_n(arst_n    ),
 		.din   (reg_write_EX_MEM),
       .en    (enable    ),
 		.dout  (reg_write_MEM_WB)
+);
+	reg_arstn_en #(.DATA_W(1)) register_memWrite_pipe_ID_EX(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+		.din   (updated_mem_write),
+      .en    (enable    ),
+		.dout  (mem_write_ID_EX)
+);	
+
+	reg_arstn_en #(.DATA_W(1)) register_memWrite_pipe_EX_MEM(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+		.din   (mem_write_ID_EX),
+      .en    (enable    ),
+		.dout  (mem_write_EX_MEM)
+);
+	
+	reg_arstn_en #(.DATA_W(1)) register_memWrite_pipe_MEM_WB(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+		.din   (mem_write_EX_MEM),
+      .en    (enable    ),
+		.dout  (mem_write_MEM_WB)
 );
 	
 ///////////////////////////////
@@ -199,9 +222,39 @@ forwarding_unit forwarding_unit(
 	.forwardA(forwardA),
 	.forwardB(forwardB)
 );
-			 
-			 
 
+///////////////////////////////
+// HAZARD DETECTION 	//////
+//////////////////////////////
+wire hazardDetected, IF_IDWrite, PCWrite, updated_mem_write, updated_reg_write;
+
+hazard_detection hazard_detection(
+	.IF_IDregisterRt(instruction_ID_EX[25:21],
+	.IF_IDregisterRs(instruction_ID_EX[20:16]),
+	.ID_EXregisterRt(regfile_waddr_EX_MEM),
+	.ID_EXMemRead(regfile_waddr_MEM_WB),
+	.PCWrite(PCWrite),
+	.IF_IDWrite(IF_IDWrite),
+	.hazardDetected(hazardDetected)
+);
+
+mux_2 #(
+	.DATA_W(1)
+) hazard_detected_REGWRITE_mux (
+	.input_a (1b'0),
+	.input_b (reg_write),
+	.select_a(hazardDetected          ),
+	.mux_out (updated_reg_write    )
+);
+	
+mux_2 #(
+	.DATA_W(1)
+) hazard_detected_MEMWRITE_mux (
+	.input_a (1b'0),
+	.input_b (mem_write),
+	.select_a(hazardDetected          ),
+	.mux_out (updated_mem_write     )
+);
 /////////////////////
 // REGISTERS       //
 /////////////////////
