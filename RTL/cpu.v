@@ -37,8 +37,8 @@ module cpu(
    );
 
 wire              zero_flag, alu_zero_EX_MEM;
-wire [      31:0] branch_pc,updated_pc,current_pc,jump_pc,
-                  instruction, updated_pc_IF_ID, updated_pc_ID_EX, updated_pc_EX_MEM, updated_jump_pc_EX_MEM;
+wire [      31:0] branch_pc,current_pc,jump_pc,
+                  updated_pc_IF_ID, updated_pc_ID_EX, updated_pc_EX_MEM, updated_jump_pc_EX_MEM, updated_pc, instruction;
 wire [       1:0] alu_op, alu_op_ID_EX;
 wire [       3:0] alu_control;
 wire              reg_dst,branch,mem_read,mem_2_reg,
@@ -53,7 +53,8 @@ wire signed [31:0] immediate_extended;
 wire [1:0] forwardA;
 wire [1:0] forwardB;
 wire [31:0] mux1_out, alu_operand_1, mux2_out, mux_3_out;
-wire hazardDetected, IF_IDWrite, PCWrite, updated_mem_write, updated_reg_write;
+wire hazardDetected,  PCWrite, updated_mem_write, updated_reg_write;
+wire IF_IDWrite;
 
 // extends IF/ID instruction
 assign immediate_extended = $signed(instruction_IF_ID[15:0]);
@@ -72,9 +73,11 @@ pc #(
    .branch    (branch_EX_MEM    ),
    .jump      (jump_EX_MEM      ),
    .current_pc(current_pc),
-   .enable    ((alu_zero_EX_MEM & branch_EX_MEM) | PCWrite    ),
-   .updated_pc(updated_pc)
+   .enable    (enable ),
+   .updated_pc(updated_pc),
+	.PCWrite(PCWrite)
 );
+
 
 // IF/ID updated PC
 reg_arstn_en #(.DATA_W(32)) updated_pc_pipe_IF_ID(
@@ -122,7 +125,7 @@ reg_arstn_en #(.DATA_W(32)) instruction_pipe_IF_ID(
       .clk   (clk       ),
       .arst_n(arst_n    ),
       .din   (instruction),
-      .en    (IF_IDWrite    ),
+      .en    (IF_IDWrite   ),
       .dout  (instruction_IF_ID)
 );
 

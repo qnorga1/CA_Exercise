@@ -20,6 +20,7 @@ module pc#(
       input  wire              clk,
       input  wire              arst_n,
       input  wire              enable,
+      input  wire	       PCWrite,
       input  wire [DATA_W-1:0] branch_pc,
       input  wire [DATA_W-1:0] jump_pc,  
       input  wire              zero_flag,
@@ -36,7 +37,7 @@ module pc#(
    reg               pc_src;
       
 
-   always@(*) pc_src = zero_flag & branch; 
+   always@(*) pc_src = (PCWrite  || (zero_flag & branch)); 
       
    mux_2#(
       .DATA_W(DATA_W)
@@ -70,7 +71,8 @@ module pc#(
    );
 
    
-   always@(*) updated_pc = current_pc+PC_INCREASE;
+   
+	always@(*)updated_pc = current_pc+PC_INCREASE;
 
 
    
