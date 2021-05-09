@@ -42,9 +42,9 @@ wire [      31:0] branch_pc,updated_pc,current_pc,jump_pc,
 wire [       1:0] alu_op, alu_op_ID_EX;
 wire [       3:0] alu_control;
 wire              reg_dst,branch,mem_read,mem_2_reg,
-                  mem_write,alu_src, reg_write, reg_write_MEM_WB, jump, alu_src_ID_EX, jump_EX_MEM, branch_EX_MEM ;
+                  mem_write,alu_src, reg_write, reg_write_MEM_WB, jump, alu_src_ID_EX, jump_EX_MEM, branch_EX_MEM, reg_write_ID_EX, mem_2_reg_ID_EX, branch_ID_EX, jump_ID_EX, mem_read_ID_EX, mem_write_ID_EX, reg_dst_ID_EX, reg_write_EX_MEM , mem_2_reg_EX_MEM, mem_read_EX_MEM, mem_write_EX_MEM, mem_2_reg_MEM_WB;
 wire [       4:0] regfile_waddr, instruction1620_ID_EX,instruction1115_ID_EX,	 regfile_waddr_EX_MEM, regfile_waddr_MEM_WB;
-wire [      31:0] regfile_wdata, dram_data,alu_out,
+wire [      31:0] regfile_wdata, dram_data,alu_out, dram_data_MEM_WB,
                   regfile_data_1,regfile_data_2,
                   alu_operand_2, alu_result_EX_MEM, alu_result_MEM_WB;
 wire [      31:0] instruction_IF_ID, instruction_ID_EX;
@@ -516,8 +516,8 @@ branch_unit#(
    .DATA_W(32)
 )branch_unit(
    .updated_pc   (updated_pc_ID_EX        ),
-   .instruction  (instruction_ID_EX       ),
-   .branch_offset(immediate_extended),
+   .instruction  (instruction_IF_ID       ),
+   .branch_offset(instruction_ID_EX),
    .branch_pc    (branch_pc         ),
    .jump_pc      (jump_pc         )
 );

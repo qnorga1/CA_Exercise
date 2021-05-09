@@ -1,0 +1,99 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 1
+Design : cpu
+Version: N-2017.09-SP3
+Date   : Sun May  9 19:52:57 2021
+****************************************
+
+ # A fanout number of 1000 was used for high fanout net computations.
+
+Operating Conditions: tt1p05v25c   Library: saed32sram_tt1p05v25c
+Wire Load Model Mode: enclosed
+
+  Startpoint: control_ALU_Src_pipe_ID_EX/r_reg_0_
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: alu_zero_reg_EX_MEM/r_reg_0_
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Des/Clust/Port     Wire Load Model       Library
+  ------------------------------------------------
+  cpu                280000                saed32sram_tt1p05v25c
+  alu_DATA_W32       8000                  saed32sram_tt1p05v25c
+  reg_arstn_en_DATA_W1_0
+                     ForQA                 saed32sram_tt1p05v25c
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  control_ALU_Src_pipe_ID_EX/r_reg_0_/CLK (DFFARX1_RVT)
+                                                          0.00       0.00 r
+  control_ALU_Src_pipe_ID_EX/r_reg_0_/Q (DFFARX1_RVT)     0.40       0.40 f
+  control_ALU_Src_pipe_ID_EX/dout[0] (reg_arstn_en_DATA_W1_9)
+                                                          0.00       0.40 f
+  alu_operand_mux/select_a (mux_2_DATA_W32_3)             0.00       0.40 f
+  alu_operand_mux/U7/Y (AO22X1_RVT)                       4.97       5.37 f
+  alu_operand_mux/mux_out[0] (mux_2_DATA_W32_3)           0.00       5.37 f
+  alu/alu_in_1[0] (alu_DATA_W32)                          0.00       5.37 f
+  alu/U4/Y (XOR2X1_RVT)                                  10.48      15.85 f
+  alu/DP_OP_18J2_122_7468_U33/CO (FADDX1_RVT)             0.21      16.05 f
+  alu/DP_OP_18J2_122_7468_U32/CO (FADDX1_RVT)             0.20      16.26 f
+  alu/DP_OP_18J2_122_7468_U31/CO (FADDX1_RVT)             0.20      16.46 f
+  alu/DP_OP_18J2_122_7468_U30/CO (FADDX1_RVT)             0.20      16.66 f
+  alu/DP_OP_18J2_122_7468_U29/CO (FADDX1_RVT)             0.20      16.86 f
+  alu/DP_OP_18J2_122_7468_U28/CO (FADDX1_RVT)             0.20      17.06 f
+  alu/DP_OP_18J2_122_7468_U27/CO (FADDX1_RVT)             0.20      17.26 f
+  alu/DP_OP_18J2_122_7468_U26/CO (FADDX1_RVT)             0.20      17.47 f
+  alu/DP_OP_18J2_122_7468_U25/CO (FADDX1_RVT)             0.20      17.67 f
+  alu/DP_OP_18J2_122_7468_U24/CO (FADDX1_RVT)             0.20      17.87 f
+  alu/DP_OP_18J2_122_7468_U23/CO (FADDX1_RVT)             0.20      18.07 f
+  alu/DP_OP_18J2_122_7468_U22/CO (FADDX1_RVT)             0.20      18.27 f
+  alu/DP_OP_18J2_122_7468_U21/CO (FADDX1_RVT)             0.20      18.47 f
+  alu/DP_OP_18J2_122_7468_U20/CO (FADDX1_RVT)             0.20      18.67 f
+  alu/DP_OP_18J2_122_7468_U19/CO (FADDX1_RVT)             0.20      18.87 f
+  alu/DP_OP_18J2_122_7468_U18/CO (FADDX1_RVT)             0.20      19.07 f
+  alu/DP_OP_18J2_122_7468_U17/CO (FADDX1_RVT)             0.20      19.27 f
+  alu/DP_OP_18J2_122_7468_U16/CO (FADDX1_RVT)             0.20      19.47 f
+  alu/DP_OP_18J2_122_7468_U15/CO (FADDX1_RVT)             0.20      19.67 f
+  alu/DP_OP_18J2_122_7468_U14/CO (FADDX1_RVT)             0.20      19.87 f
+  alu/DP_OP_18J2_122_7468_U13/CO (FADDX1_RVT)             0.20      20.07 f
+  alu/DP_OP_18J2_122_7468_U12/CO (FADDX1_RVT)             0.20      20.27 f
+  alu/DP_OP_18J2_122_7468_U11/CO (FADDX1_RVT)             0.20      20.47 f
+  alu/DP_OP_18J2_122_7468_U10/CO (FADDX1_RVT)             0.20      20.67 f
+  alu/DP_OP_18J2_122_7468_U9/CO (FADDX1_RVT)              0.20      20.87 f
+  alu/DP_OP_18J2_122_7468_U8/CO (FADDX1_RVT)              0.20      21.07 f
+  alu/DP_OP_18J2_122_7468_U7/CO (FADDX1_RVT)              0.20      21.27 f
+  alu/DP_OP_18J2_122_7468_U6/CO (FADDX1_RVT)              0.20      21.47 f
+  alu/DP_OP_18J2_122_7468_U5/CO (FADDX1_RVT)              0.20      21.67 f
+  alu/DP_OP_18J2_122_7468_U4/CO (FADDX1_RVT)              0.20      21.87 f
+  alu/DP_OP_18J2_122_7468_U3/S (FADDX1_RVT)               0.19      22.06 f
+  alu/U420/Y (AO21X1_RVT)                                 0.10      22.16 f
+  alu/U421/Y (AO21X1_RVT)                                 0.10      22.26 f
+  alu/U1633/Y (OR3X2_RVT)                                 0.69      22.95 f
+  alu/U1643/Y (NOR4X1_RVT)                                0.11      23.07 r
+  alu/zero_flag (alu_DATA_W32)                            0.00      23.07 r
+  alu_zero_reg_EX_MEM/din[0] (reg_arstn_en_DATA_W1_0)     0.00      23.07 r
+  alu_zero_reg_EX_MEM/U3/Y (AO22X1_RVT)                   0.15      23.22 r
+  alu_zero_reg_EX_MEM/r_reg_0_/D (DFFARX1_RVT)            0.01      23.23 r
+  data arrival time                                                 23.23
+
+  clock clk (rise edge)                                 100.00     100.00
+  clock network delay (ideal)                             0.00     100.00
+  clock uncertainty                                      -0.10      99.90
+  alu_zero_reg_EX_MEM/r_reg_0_/CLK (DFFARX1_RVT)          0.00      99.90 r
+  library setup time                                     -0.02      99.88
+  data required time                                                99.88
+  --------------------------------------------------------------------------
+  data required time                                                99.88
+  data arrival time                                                -23.23
+  --------------------------------------------------------------------------
+  slack (MET)                                                       76.64
+
+
+1
