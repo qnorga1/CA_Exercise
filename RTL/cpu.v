@@ -370,8 +370,8 @@ mux_2 #(
 ) alu_operand_mux (
 	.input_a (mux2_out),
 	.input_b (alu_result_EX_MEM    ),
-	.select_a(forwardA[1]           ),
-	.mux_out (alu_operand_1     )
+	.select_a(forwardB[1]           ),
+	.mux_out (mux_3_out     )
 );	
 mux_2 #(
    .DATA_W(32)
