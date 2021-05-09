@@ -47,7 +47,7 @@ wire [       4:0] regfile_waddr, instruction1620_ID_EX,instruction1115_ID_EX,	 r
 wire [      31:0] regfile_wdata, dram_data,alu_out, dram_data_MEM_WB,
                   regfile_data_1,regfile_data_2,
                   alu_operand_2, alu_result_EX_MEM, alu_result_MEM_WB;
-wire [      31:0] instruction_IF_ID, instruction_ID_EX;
+wire [      31:0] instruction_IF_ID, instruction_ID_EX, instruction_ID_EX_extended;
 wire [      31:0] regfile_data_1_ID_EX, regfile_data_2_ID_EX, regfile_data_2_EX_MEM;
 wire signed [31:0] immediate_extended;
 
@@ -122,11 +122,20 @@ reg_arstn_en #(.DATA_W(32)) instruction_pipe_IF_ID(
       .dout  (instruction_IF_ID)
 );
 
+// ID/EX instruction extended
+reg_arstn_en #(.DATA_W(32)) instruction_extended_pipe_ID_EX(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (immediate_extended),
+      .en    (enable    ),
+      .dout  (instruction_ID_EX_extended)
+);
+
 // ID/EX instruction
 reg_arstn_en #(.DATA_W(32)) instruction_pipe_ID_EX(
       .clk   (clk       ),
       .arst_n(arst_n    ),
-      .din   (immediate_extended),
+      .din   (instruction_IF_ID),
       .en    (enable    ),
       .dout  (instruction_ID_EX)
 );
@@ -338,6 +347,11 @@ reg_arstn_en #(.DATA_W(1)) control_Mem2Reg_pipe_MEM_WB(
       .en    (enable    ),
       .dout  (mem_2_reg_MEM_WB)
 );
+
+
+
+
+
 /////////////////////
 // REGISTERS       //
 /////////////////////
@@ -401,7 +415,7 @@ reg_arstn_en #(.DATA_W(32)) register_data2_pipe_ID_EX(
 reg_arstn_en #(.DATA_W(32)) register_data2_pipe_EX_MEM(
       .clk   (clk       ),
       .arst_n(arst_n    ),
-      .din   (regfile_data_2_ID_EX),
+      .din   (mux_3_out),
       .en    (enable    ),
       .dout  (regfile_data_2_EX_MEM)
 );
@@ -412,29 +426,21 @@ reg_arstn_en #(.DATA_W(32)) register_data2_pipe_EX_MEM(
 /////////////////////
 
 alu_control alu_ctrl(
-   .function_field (instruction_ID_EX[5:0]),
+   .function_field (instruction_ID_EX_extended[5:0]),
    .alu_op         (alu_op_ID_EX[1:0]          ),
    .alu_control    (alu_control     )
 );
 
-// EX instruction (ALU) MUX
-mux_2 #(
-   .DATA_W(32)
-) alu_operand_mux (
-   .input_a (instruction_ID_EX), 
-   .input_b (regfile_data_2_ID_EX    ),
-   .select_a(alu_src_ID_EX           ),
-   .mux_out (alu_operand_2     )
-);
+
 
 alu#(
    .DATA_W(32)
 ) alu(
-   .alu_in_0 (regfile_data_1_ID_EX),
+   .alu_in_0 (alu_operand_1),
    .alu_in_1 (alu_operand_2 ),
    .alu_ctrl (alu_control   ),
    .alu_out  (alu_out       ),
-   .shft_amnt(instruction_ID_EX[10:6]),
+   .shft_amnt(instruction_ID_EX_extended[10:6]),
    .zero_flag(zero_flag     ),
    .overflow (              )
 );
@@ -517,10 +523,107 @@ branch_unit#(
 )branch_unit(
    .updated_pc   (updated_pc_ID_EX        ),
    .instruction  (instruction_IF_ID       ),
-   .branch_offset(instruction_ID_EX),
+   .branch_offset(instruction_ID_EX_extended),
    .branch_pc    (branch_pc         ),
    .jump_pc      (jump_pc         )
 );
 
+
+///////////////////////////////
+// FORWARDING UNIT 	//////
+//////////////////////////////
+wire [1:0] forwardA;
+wire [1:0] forwardB;
+wire [31:0] mux1_out, alu_operand_1, mux2_out, mux_3_out;
+
+forwarding_unit forwarding_unit(
+	.IF_IDregisterRs(instruction_ID_EX[25:21]),
+	.IF_IDregisterRt(instruction_ID_EX[20:16]),
+	.EX_MEMregisterRd(regfile_waddr_EX_MEM),
+	.MEM_WBregisterRd(regfile_waddr_MEM_WB),
+	.EX_MEMregWrite(reg_write_EX_MEM),
+	.MEM_WBregWrite(reg_write_MEM_WB),
+	.forwardA(forwardA),
+	.forwardB(forwardB)
+);
+
+// 2 MUX's to select 1st ALU operand
+mux_2 #(
+   .DATA_W(32)
+) alu_operand_mux11 (
+	.input_a (regfile_data_1_ID_EX),
+	.input_b (regfile_wdata    ),
+	.select_a(forwardA[0]           ),
+	.mux_out (mux1_out     )
+);
+mux_2 #(
+   .DATA_W(32)
+) alu_operand_mux12 (
+	.input_a (mux1_out),
+	.input_b (alu_result_EX_MEM    ),
+	.select_a(forwardA[1]           ),
+	.mux_out (alu_operand_1     )
+);
+
+// 3 MUX's to choose 2nd alu operand	
+mux_2 #(
+   .DATA_W(32)
+) alu_operand_mux21 (
+	.input_a (regfile_data_2_ID_EX),
+	.input_b (regfile_wdata    ),
+	.select_a(forwardB[0]           ),
+	.mux_out (mux2_out     )
+);
+mux_2 #(
+   .DATA_W(32)
+) alu_operand_mux22 (
+	.input_a (mux2_out),
+	.input_b (alu_result_EX_MEM    ),
+	.select_a(forwardB[1]           ),
+	.mux_out (mux_3_out     )
+);	
+
+// EX instruction (ALU) MUX
+mux_2 #(
+   .DATA_W(32)
+) alu_operand_mux (
+   .input_a (instruction_ID_EX_extended), 
+   .input_b (mux_3_out    ),
+   .select_a(alu_src_ID_EX           ),
+   .mux_out (alu_operand_2     )
+);
+
+///////////////////////////////
+// HAZARD DETECTION 	//////
+//////////////////////////////
+wire hazardDetected, IF_IDWrite, PCWrite, updated_mem_write, updated_reg_write;
+
+hazard_detection hazard_detection(
+	.IF_IDregisterRt(instruction_ID_EX[25:21]),
+	.IF_IDregisterRs(instruction_ID_EX[20:16]),
+	.ID_EXregisterRt(regfile_waddr_EX_MEM),
+	.ID_EXMemRead(regfile_waddr_MEM_WB),
+	.PCWrite(PCWrite),
+	.IF_IDWrite(IF_IDWrite),
+	.hazardDetected(hazardDetected)
+);
+
+mux_2 #(
+	.DATA_W(1)
+) hazard_detected_REGWRITE_mux (
+	.input_a (1b'0),
+	.input_b (reg_write),
+	.select_a(hazardDetected          ),
+	.mux_out (updated_reg_write    )
+);
+
+mux_2 #(
+	.DATA_W(1)
+) hazard_detected_MEMWRITE_mux (
+	.input_a (1b'0),
+	.input_b (mem_write),
+	.select_a(hazardDetected          ),
+	.mux_out (updated_mem_write     )
+);
 
 endmodule
