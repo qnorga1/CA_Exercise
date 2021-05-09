@@ -11,6 +11,7 @@ module hazard_detection(
    );
   
   always@(*) begin
+        hazardDetected = 1'b0;
     //Load instruction
     if (ID_EXMemRead && ((ID_EXregisterRt == IF_IDregisterRs) || (ID_EXregisterRt == IF_IDregisterRt)) ) begin
           hazardDetected = 1'b1;
