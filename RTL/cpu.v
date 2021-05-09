@@ -50,6 +50,10 @@ wire [      31:0] regfile_wdata, dram_data,alu_out, dram_data_MEM_WB,
 wire [      31:0] instruction_IF_ID, instruction_ID_EX, instruction_ID_EX_extended;
 wire [      31:0] regfile_data_1_ID_EX, regfile_data_2_ID_EX, regfile_data_2_EX_MEM;
 wire signed [31:0] immediate_extended;
+wire [1:0] forwardA;
+wire [1:0] forwardB;
+wire [31:0] mux1_out, alu_operand_1, mux2_out, mux_3_out;
+wire hazardDetected, IF_IDWrite, PCWrite, updated_mem_write, updated_reg_write;
 
 // extends IF/ID instruction
 assign immediate_extended = $signed(instruction_IF_ID[15:0]);
@@ -68,7 +72,7 @@ pc #(
    .branch    (branch_EX_MEM    ),
    .jump      (jump_EX_MEM      ),
    .current_pc(current_pc),
-   .enable    (enable    ),
+   .enable    ((alu_zero_EX_MEM & branch_EX_MEM) | PCWrite    ),
    .updated_pc(updated_pc)
 );
 
@@ -77,7 +81,7 @@ reg_arstn_en #(.DATA_W(32)) updated_pc_pipe_IF_ID(
       .clk   (clk       ),
       .arst_n(arst_n    ),
       .din   (updated_pc),
-      .en    (enable    ),
+      .en    (IF_IDWrite    ),
       .dout  (updated_pc_IF_ID)
 );
 
@@ -118,7 +122,7 @@ reg_arstn_en #(.DATA_W(32)) instruction_pipe_IF_ID(
       .clk   (clk       ),
       .arst_n(arst_n    ),
       .din   (instruction),
-      .en    (enable    ),
+      .en    (IF_IDWrite    ),
       .dout  (instruction_IF_ID)
 );
 
@@ -206,7 +210,7 @@ control_unit control_unit(
 reg_arstn_en #(.DATA_W(1)) control_RegWrite_pipe_ID_EX(
       .clk   (clk       ),
       .arst_n(arst_n    ),
-      .din   (reg_write),
+      .din   (updated_reg_write),
       .en    (enable    ),
       .dout  (reg_write_ID_EX)
 );	
@@ -246,7 +250,7 @@ reg_arstn_en #(.DATA_W(1)) control_MemRead_pipe_ID_EX(
 reg_arstn_en #(.DATA_W(1)) control_MemWrite_pipe_ID_EX(
       .clk   (clk       ),
       .arst_n(arst_n    ),
-      .din   (mem_write),
+      .din   (updated_mem_write),
       .en    (enable    ),
       .dout  (mem_write_ID_EX)
 );
@@ -532,13 +536,11 @@ branch_unit#(
 ///////////////////////////////
 // FORWARDING UNIT 	//////
 //////////////////////////////
-wire [1:0] forwardA;
-wire [1:0] forwardB;
-wire [31:0] mux1_out, alu_operand_1, mux2_out, mux_3_out;
+
 
 forwarding_unit forwarding_unit(
-	.IF_IDregisterRs(instruction_ID_EX[25:21]),
-	.IF_IDregisterRt(instruction_ID_EX[20:16]),
+	.ID_EXregisterRs(instruction_ID_EX[25:21]),
+	.ID_EXregisterRt(instruction_ID_EX[20:16]),
 	.EX_MEMregisterRd(regfile_waddr_EX_MEM),
 	.MEM_WBregisterRd(regfile_waddr_MEM_WB),
 	.EX_MEMregWrite(reg_write_EX_MEM),
@@ -596,12 +598,12 @@ mux_2 #(
 ///////////////////////////////
 // HAZARD DETECTION 	//////
 //////////////////////////////
-wire hazardDetected, IF_IDWrite, PCWrite, updated_mem_write, updated_reg_write;
+
 
 hazard_detection hazard_detection(
-	.IF_IDregisterRt(instruction_ID_EX[25:21]),
-	.IF_IDregisterRs(instruction_ID_EX[20:16]),
-	.ID_EXregisterRt(regfile_waddr_EX_MEM),
+	.IF_IDregisterRs(instruction_IF_ID[25:21]),
+	.IF_IDregisterRt(instruction_IF_ID[20:16]),
+	.ID_EXregisterRt(instruction_ID_EX[20:16]),
 	.ID_EXMemRead(regfile_waddr_MEM_WB),
 	.PCWrite(PCWrite),
 	.IF_IDWrite(IF_IDWrite),
@@ -611,7 +613,7 @@ hazard_detection hazard_detection(
 mux_2 #(
 	.DATA_W(1)
 ) hazard_detected_REGWRITE_mux (
-	.input_a (1b'0),
+	.input_a (1'b0),
 	.input_b (reg_write),
 	.select_a(hazardDetected          ),
 	.mux_out (updated_reg_write    )
@@ -620,7 +622,7 @@ mux_2 #(
 mux_2 #(
 	.DATA_W(1)
 ) hazard_detected_MEMWRITE_mux (
-	.input_a (1b'0),
+	.input_a (1'b0),
 	.input_b (mem_write),
 	.select_a(hazardDetected          ),
 	.mux_out (updated_mem_write     )
