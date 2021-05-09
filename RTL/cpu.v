@@ -36,7 +36,7 @@ module cpu(
 
    );
 
-wire              zero_flag, regfile_data_2_EX_MEM;
+wire              zero_flag, alu_zero_EX_MEM;
 wire [      31:0] branch_pc,updated_pc,current_pc,jump_pc,
                   instruction, updated_pc_IF_ID, updated_pc_ID_EX, updated_pc_EX_MEM, updated_jump_pc_EX_MEM;
 wire [       1:0] alu_op, alu_op_ID_EX;
@@ -46,7 +46,7 @@ wire              reg_dst,branch,mem_read,mem_2_reg,
 wire [       4:0] regfile_waddr, instruction1620_ID_EX,instruction1115_ID_EX,	 regfile_waddr_EX_MEM, regfile_waddr_MEM_WB;
 wire [      31:0] regfile_wdata, dram_data,alu_out,
                   regfile_data_1,regfile_data_2,
-                  alu_operand_2;
+                  alu_operand_2, alu_result_EX_MEM, alu_result_MEM_WB;
 wire [      31:0] instruction_IF_ID, instruction_ID_EX;
 wire [      31:0] regfile_data_1_ID_EX, regfile_data_2_ID_EX, regfile_data_2_EX_MEM;
 wire signed [31:0] immediate_extended;
@@ -147,13 +147,7 @@ reg_arstn_en #(.DATA_W(5)) instruction1620_pipe_ID_EX(
       .dout  (instruction1620_ID_EX)
 );
 
-reg_arstn_en #(.DATA_W(1)) control_ALU_Src_pipe_ID_EX(
-      .clk   (clk       ),
-      .arst_n(arst_n    ),
-      .din   (alu_src),
-      .en    (enable    ),
-      .dout  (alu_src_ID_EX)
-);
+
 	
 //reg_arstn_en #(.DATA_W(5)) control_ALU_Src_pipe_ID_EX(
  //     .clk   (clk       ),
@@ -187,7 +181,7 @@ sram #(
 /////////////////////
 
 control_unit control_unit(
-   .opcode   (instruction[31:26]),
+   .opcode   (instruction_IF_ID[31:26]),
    .reg_dst  (reg_dst           ),
    .branch   (branch            ),
    .mem_read (mem_read          ),
@@ -262,6 +256,14 @@ reg_arstn_en #(.DATA_W(2)) control_ALU_Op_pipe_ID_EX(
       .din   (alu_op),
       .en    (enable    ),
       .dout  (alu_op_ID_EX)
+);
+
+reg_arstn_en #(.DATA_W(1)) control_ALU_Src_pipe_ID_EX(
+      .clk   (clk       ),
+      .arst_n(arst_n    ),
+      .din   (alu_src),
+      .en    (enable    ),
+      .dout  (alu_src_ID_EX)
 );
 
 //reg_arstn_en #(.DATA_W(1)) control_ALU_Src_pipe_ID_EX(
@@ -419,7 +421,7 @@ alu_control alu_ctrl(
 mux_2 #(
    .DATA_W(32)
 ) alu_operand_mux (
-   .input_a (instruction_ID_EX),
+   .input_a (instruction_ID_EX), 
    .input_b (regfile_data_2_ID_EX    ),
    .select_a(alu_src_ID_EX           ),
    .mux_out (alu_operand_2     )
